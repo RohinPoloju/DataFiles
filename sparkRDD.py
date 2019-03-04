@@ -1,5 +1,5 @@
 import datetime
-import pyspark
+#from pyspark import SparkContext as sc
 
 orderItems = sc.textFile("/public/retail_db/order_items")
 orders = sc.textFile("/public/retail_db/orders")
@@ -17,11 +17,11 @@ ordersDate = orders.filter(lambda oi: datetime.datetime.strptime( str(oi.split('
 ordersMap = orders.map(lambda oi: (int(oi.split(',')[0]),datetime.datetime.strptime(oi.split(",")[1],"%Y-%m-%d %H-%M-%S.%f")))
 orderItemsMap = orderItems.map(lambda oi: (int(oi.split(',')[1]),datetime.datetime.strptime(oi.split(",")[4],"%Y-%m-%d %H-%M-%S.%f"))) # datetime conversion
 
-ord2 = ord1.map(lambda oi: (int(oi.split(',')[1]),float(oi.split(',')[4]))).reduceByKey(lambda x,y: min(x,y)) #reduceByKey
+#ord2 = ord1.map(lambda oi: (int(oi.split(',')[1]),float(oi.split(',')[4]))).reduceByKey(lambda x,y: min(x,y)) #reduceByKey
 
 ordersMapJoin = ordersMap.join(orderItemsMap)
 
-def getTopN(rdd,n):
+def getTopN(rdd, n):
     for i in rdd.take(n):
         print(i)
 
@@ -42,13 +42,13 @@ revenuePerOrderAG = orderItemsMap.aggregateByKey((0.0, 0),lambda x,y: (x[0]+y, x
 #sortByKey
 #sorting the data in products with product price in ascending order
 productsMap = products.map(lambda oi: (float(oi.split(",")[4]), oi))
-# there is an comman seperation in column 3 for product table
+# there is an comma separation in column 3 for product table
 productMapFilter = products.filter(lambda p: p.split(',')[4] != "").map(lambda oi: (float(oi.split(",")[4]),oi))
 productsSortByKey = productsMap.sortByKey()
 productsSortedMap = productsSortByKey.map(lambda oi: oi[1])
 
 #Sort the data by product Category and then by product price in descending 
-#productsSortByKey = prodcutsMap.sortByKey(False)
+#productsSortByKey = productsMap.sortByKey(False)
 productsFilter = products.filter(lambda p: p.split(',')[4] != "")
 productsKeysForSorting = productsFilter.map(lambda oi: ((int(oi.split(",")[1]),float(oi.split(",")[4])), oi) )
 #((int(oi.split(",")[1]),float(oi.split(",")[4]),oi)))
@@ -57,13 +57,13 @@ productsKeysForSorting = productsFilter.map(lambda oi: ((int(oi.split(",")[1]),f
 #Get top N products with lowest price - Global Ranking - sortbyKey and take
 products = sc.textFile("/public/retail_db/products")
 productsFilter = products.filter(lambda p: p.split(',')[4] != "")
-prodcutsMap = productsFilter.map(lambda oi: (float(oi.split(",")[4]),oi))
+productsMap = productsFilter.map(lambda oi: (float(oi.split(",")[4]),oi))
 productsSortByKey = productsMap.sortByKey()
 topTenLowestPrice = productsSortByKey.map(lambda oi: oi[1])
 getTopN(topTenLowestPrice,10)
 # -- The above query give the top 10 lowest priced products 
 # -- to get the top 10 expensive products 
-productsSortByKey = prodcutsMap.sortByKey(False)
+productsSortByKey = productsMap.sortByKey(False)
 topTenExpensiveProducts = productsSortByKey.map(lambda oi: oi[1])
 getTopN(topTenExpensiveProducts,10)
 # We did map -> sortByKey -> map -> take
